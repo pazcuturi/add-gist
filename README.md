@@ -6,4 +6,4 @@ Additionally, the script:
 * If a connection error occurs, gives the user an option to resume.
 
 Run instructions:
-ruby addGist.rb <dirname/filename> <public? (boolean)>
+ruby addGist.rb <dirname/filename> <public? (boolean)> <gist description>
