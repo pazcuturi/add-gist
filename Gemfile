@@ -1,2 +1,3 @@
-ruby '2.5.1'
-gem  'rubocop'
+# frozen_string_literal: true
+
+gem 'rubocop'
