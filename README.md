@@ -1,4 +1,4 @@
-This is a Ruby program that receives a dirname or filename and uploads the file or the files in the given directory (and all directories within) as gists into GitHub.
+This is a Ruby program that receives a path to dirname or filename and uploads the file or the files in the given directory (and all directories within) as a gist into GitHub.
 
 Additionally, the script:
 * Displays upload progress
@@ -6,4 +6,4 @@ Additionally, the script:
 * If a connection error occurs, gives the user an option to resume.
 
 Run instructions:
-ruby addGist.rb <dirname/filename> <public? (boolean)> <"gist description">
+ruby addGist.rb <path to dirname/filename> <public? (boolean)> <"gist description">
