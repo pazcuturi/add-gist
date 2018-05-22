@@ -83,13 +83,14 @@ module AddGist
   private_class_method :read_files, :send_request, :calculate_progress, :build_request
 end
 
-if ARGV.length != 3
-  puts %(Usage: ruby addGist.rb <dirname/filename> <public? (boolean)> <"gist description">)
-  exit
+if $PROGRAM_NAME == __FILE__
+  if ARGV.length != 3
+    puts %(Usage: ruby addGist.rb <dirname/filename> <public? (boolean)> <"gist description">)
+    exit
+  end
+
+  path = ARGV[0]
+  is_public = ARGV[1].casecmp?(AddGist::TRUE)
+  gist_description = ARGV[2]
+  AddGist.upload_files(path, is_public: is_public, description: gist_description)
 end
-
-path = ARGV[0]
-is_public = ARGV[1].casecmp?(AddGist::TRUE)
-gist_description = ARGV[2]
-
-AddGist.upload_files(path, is_public: is_public, description: gist_description)

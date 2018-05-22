@@ -2,3 +2,4 @@
 .env
 prueba/
 .byebug_history
+.rspec
