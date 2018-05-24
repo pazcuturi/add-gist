@@ -52,12 +52,12 @@ describe AddGist do
     end
 
     let(:path) { 'file.txt' }
-    let(:options) { {is_public: true, description: 'Gist with new file'} }
+    let(:options) { { is_public: true, description: 'Gist with new file' } }
 
     context 'when given existing file path' do
       it 'prints the gist\'s url' do
         FakeFS do
-          File.open("#{path}", 'w') { |f| f.write('New file') }
+          File.open(path.to_s, 'w') { |f| f.write('New file') }
 
           expect_any_instance_of(progress_bar).to receive(:initialize).with(instance_of(http_post))
 
@@ -85,16 +85,16 @@ describe AddGist do
       $stdin = STDIN
     end
 
-    context 'when connection error occurs and retry == no' do
+    context 'when error occurs and retry == no' do
       it 'exits' do
         FakeFS do
-          File.open("#{path}", 'w') { |f| f.write('New file') }
+          File.open(path.to_s, 'w') { |f| f.write('New file') }
           expect_any_instance_of(progress_bar).to receive(:initialize).with(instance_of(http_post))
           stub_request(:post, "https://api.github.com/gists?access_token=#{ENV['ACCESS_TOKEN']}")
             .to_raise(StandardError)
-          expect {
+          expect do
             expect { subject }.to raise_error(SystemExit)
-          }.to output(%(The following error occurred: 'Exception from WebMock'. \nWould you like to resume (y/n)?\n)).to_stdout
+          end.to output(%(The following error occurred: 'Exception from WebMock'. \nWould you like to resume (y/n)?\n)).to_stdout
         end
       end
     end
