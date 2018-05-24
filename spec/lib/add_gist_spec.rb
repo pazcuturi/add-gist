@@ -1,61 +1,81 @@
 require 'spec_helper'
 require 'add_gist'
+require 'byebug'
 
 describe AddGist do
-  describe '.read_files' do
-    context 'when given unexisting path' do
-      it 'returns error message' do
-        expect { AddGist.send :read_files, 'xyz' }.to output(%(The path 'xyz' does not exist.\n)).to_stdout
-      end
+  describe '.upload_files' do
+    subject do
+      AddGist.upload_files(path, options)
+    end
+    let(:options) {}
+
+    context 'when given nonexistent path' do
+      let(:path) { 'xyz' }
+      it { expect { subject }.to output(%(The path '#{path}' does not exist.\n)).to_stdout }
     end
 
     context 'when given empty directory path' do
-      it 'returns no files' do
-        expect(AddGist.send(:read_files, 'empty')).to be_empty
+      let(:path) { 'empty' }
+      it 'returns nil' do
+        FakeFS do
+          Dir.mkdir(path)
+          expect(subject).to be_nil
+        end
       end
     end
 
-    context 'when given existing directory path' do
-      let(:files) { AddGist.send(:read_files, 'prueba') }
-      it 'returns all files' do
-        expect(files).to have_key('prueba.txt')
-        expect(files).to have_key('prueba2.txt')
+    let(:progress_bar) { Net::HTTP::UploadProgress }
+    let(:http_post) { Net::HTTP::Post }
+
+    context 'when given nonempty directory path' do
+      let(:path) { 'nonempty' }
+      let(:options) { { is_public: false, description: 'Awesome gist' } }
+      it 'returns status 201' do
+        FakeFS do
+          Dir.mkdir(path)
+          File.open("#{path}/text.txt", 'w') { |f| f.write('Text content') }
+
+          expect_any_instance_of(progress_bar).to receive(:initialize).with(instance_of(http_post))
+
+          stub_request(:post, "https://api.github.com/gists?access_token=#{ENV['ACCESS_TOKEN']}")
+            .with(
+              body: "{\"description\":\"Awesome gist\",\"public\":false,\"files\":{\"text.txt\":{\"content\":\"Text content\"}}}",
+              headers: {
+                'Accept' => '*/*',
+                'Accept-Encoding' => 'gzip;q=1.0,deflate;q=0.6,identity;q=0.3',
+                'Content-Length' => '93',
+                'User-Agent' => 'Ruby'
+              }
+            )
+            .to_return(status: 201, body: %({"html_url": "https://gist.github.com/someUrl"}))
+          subject
+        end
       end
     end
 
     context 'when given existing file path' do
-      it 'returns that file' do
-        expect(AddGist.send(:read_files, 'lib/add_gist.rb')). to have_key('add_gist.rb')
-      end
-    end
-  end
+      let(:path) { 'file.txt' }
+      let(:options) { {is_public: true, description: 'Gist with new file'} }
+      it 'returns status 201' do
+        FakeFS do
+          File.open("#{path}", 'w') { |f| f.write('New file') }
 
-  describe '.calculate_progress' do
-    context 'with total == amount' do
-      it 'returns 100%' do
-        expect(AddGist.send(:calculate_progress, 200, 200)).to eq(100.0)
-      end
-    end
+          expect_any_instance_of(progress_bar).to receive(:initialize).with(instance_of(http_post))
 
-    context 'with total == 0' do
-      it 'returns infinity' do
-        expect(AddGist.send(:calculate_progress, 0, 100)).to eq(Float::INFINITY)
+          stub_request(:post, "https://api.github.com/gists?access_token=#{ENV['ACCESS_TOKEN']}")
+            .with(
+              body: "{\"description\":\"Gist with new file\",\"public\":true,\"files\":{\"file.txt\":{\"content\":\"New file\"}}}",
+              headers: {
+                'Accept' => '*/*',
+                'Accept-Encoding' => 'gzip;q=1.0,deflate;q=0.6,identity;q=0.3',
+                'Content-Length' => '94',
+                'User-Agent' => 'Ruby'
+              }
+            )
+            .to_return(status: 201, body: %({"html_url": "https://gist.github.com/someUrl"}))
+          subject
+        end
       end
-    end
-
-    context 'with two positive numbers' do
-      it 'returns the percentage' do
-        expect(AddGist.send(:calculate_progress, 100, 25)).to eq(25.0)
-      end
-    end
-  end
-
-  describe '.build_request' do
-    let(:var) { AddGist.send(:build_request) }
-    it 'returns http and request' do
-      expect(var[0]).to be_instance_of(Net::HTTP)
-      expect(var[0].use_ssl?).to be true
-      expect(var[1]).to be_instance_of(Net::HTTP::Post)
     end
   end
 end

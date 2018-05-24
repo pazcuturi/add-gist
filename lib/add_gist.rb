@@ -51,9 +51,11 @@ module AddGist
     io = StringIO.new(body)
     req.content_length = io.size
     req.body_stream = io
+
     Net::HTTP::UploadProgress.new(req) do |progress|
       puts "Uploaded: #{calculate_progress(req.content_length, progress.upload_size).round(1)}%"
     end
+
     begin
       http.request(req)
     rescue StandardError => e
