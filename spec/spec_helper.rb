@@ -1,6 +1,5 @@
 require 'fakefs/spec_helpers'
 require 'webmock/rspec'
-include WebMock
 
 WebMock.disable_net_connect!(allow_localhost: true)
 

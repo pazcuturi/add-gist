@@ -4,9 +4,7 @@ require 'byebug'
 
 describe AddGist do
   describe '.upload_files' do
-    subject do
-      AddGist.upload_files(path, options)
-    end
+    subject { AddGist.upload_files(path, options) }
     let(:options) {}
 
     context 'when given nonexistent path' do
@@ -30,7 +28,7 @@ describe AddGist do
     context 'when given nonempty directory path' do
       let(:path) { 'nonempty' }
       let(:options) { { is_public: false, description: 'Awesome gist' } }
-      it 'returns status 201' do
+      it 'prints the gist\'s url' do
         FakeFS do
           Dir.mkdir(path)
           File.open("#{path}/text.txt", 'w') { |f| f.write('Text content') }
@@ -47,16 +45,17 @@ describe AddGist do
                 'User-Agent' => 'Ruby'
               }
             )
-            .to_return(status: 201, body: %({"html_url": "https://gist.github.com/someUrl"}))
-          subject
+            .to_return(status: 201, body: %({"html_url": "https://gist.github.com/1234"}))
+          expect { subject }.to output(%(Gist created successfully! \nAccess URL: https://gist.github.com/1234\n)).to_stdout
         end
       end
     end
 
+    let(:path) { 'file.txt' }
+    let(:options) { {is_public: true, description: 'Gist with new file'} }
+
     context 'when given existing file path' do
-      let(:path) { 'file.txt' }
-      let(:options) { {is_public: true, description: 'Gist with new file'} }
-      it 'returns status 201' do
+      it 'prints the gist\'s url' do
         FakeFS do
           File.open("#{path}", 'w') { |f| f.write('New file') }
 
@@ -72,8 +71,30 @@ describe AddGist do
                 'User-Agent' => 'Ruby'
               }
             )
-            .to_return(status: 201, body: %({"html_url": "https://gist.github.com/someUrl"}))
-          subject
+            .to_return(status: 201, body: %({"html_url": "https://gist.github.com/8989"}))
+          expect { subject }.to output(%(Gist created successfully! \nAccess URL: https://gist.github.com/8989\n)).to_stdout
+        end
+      end
+    end
+
+    before do
+      $stdin = StringIO.new("no\n")
+    end
+
+    after do
+      $stdin = STDIN
+    end
+
+    context 'when connection error occurs and retry == no' do
+      it 'exits' do
+        FakeFS do
+          File.open("#{path}", 'w') { |f| f.write('New file') }
+          expect_any_instance_of(progress_bar).to receive(:initialize).with(instance_of(http_post))
+          stub_request(:post, "https://api.github.com/gists?access_token=#{ENV['ACCESS_TOKEN']}")
+            .to_raise(StandardError)
+          expect {
+            expect { subject }.to raise_error(SystemExit)
+          }.to output(%(The following error occurred: 'Exception from WebMock'. \nWould you like to resume (y/n)?\n)).to_stdout
         end
       end
     end
