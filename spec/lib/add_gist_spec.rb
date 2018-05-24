@@ -1,6 +1,5 @@
 require 'spec_helper'
 require 'add_gist'
-require 'byebug'
 
 describe AddGist do
   describe '.upload_files' do
