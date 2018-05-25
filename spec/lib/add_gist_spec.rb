@@ -76,16 +76,16 @@ describe AddGist do
       end
     end
 
-    before do
-      $stdin = StringIO.new("no\n")
-    end
+    context 'when error occurs' do
+      before do
+        $stdin = StringIO.new("no\n")
+      end
 
-    after do
-      $stdin = STDIN
-    end
+      after do
+        $stdin = STDIN
+      end
 
-    context 'when error occurs and retry == no' do
-      it 'exits' do
+      it 'it exits if retry == no' do
         FakeFS do
           File.open(path.to_s, 'w') { |f| f.write('New file') }
           expect_any_instance_of(progress_bar).to receive(:initialize).with(instance_of(http_post))
@@ -95,6 +95,27 @@ describe AddGist do
             expect { subject }.to raise_error(SystemExit)
           end.to output(%(The following error occurred: 'Exception from WebMock'. \nWould you like to resume (y/n)?\n)).to_stdout
         end
+      end
+    end
+
+    before do
+      $stdin = StringIO.new("yes\n")
+    end
+
+    after do
+      $stdin = STDIN
+    end
+
+    it 'desn\'t exit if retry == yes' do
+      FakeFS do
+        File.open(path.to_s, 'w') { |f| f.write('New file') }
+        expect_any_instance_of(progress_bar).to receive(:initialize).with(instance_of(http_post))
+        stub_request(:post, "https://api.github.com/gists?access_token=#{ENV['ACCESS_TOKEN']}")
+          .to_raise(StandardError)
+        expect do
+          expect { subject }.not_to raise_error(SystemExit)
+        end.to output("The following error occurred: 'Exception from WebMock'. \nWould you like to resume (y/n)?\n"\
+        "The following error occurred: 'Exception from WebMock'. \nWould you like to resume (y/n)?\n").to_stdout
       end
     end
   end
